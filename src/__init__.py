@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.db.main import init_db
 from src.routes.auth import router as auth_router
@@ -15,11 +16,19 @@ async def lifespan(app: FastAPI):
     print('=' * 50, ' Shutting down... ', '=' * 50)
 
 
-app = FastAPI(
-    title='FastAPI Example',
-    description='A simple FastAPI example with lifespan context manager',
-    version='0.1.0',
-    lifespan=lifespan,
+app = FastAPI(lifespan=lifespan)
+
+origins = [
+    'http://localhost:5174',
+    # Add more origins here
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
 
