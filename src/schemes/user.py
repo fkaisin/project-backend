@@ -24,3 +24,8 @@ class UserUpdate(SQLModel):
     username: str | None = None
     email: str | None = None
     password: str | None = None
+
+
+class UserLogin(UserBase):
+    email: None = None
+    password: str

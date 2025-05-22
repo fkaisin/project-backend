@@ -14,7 +14,7 @@ from src.utils.security import verify_password
 @pytest.mark.asyncio
 async def test_create_user(client: AsyncClient):
     response = await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': TEST_EMAIL,
@@ -37,7 +37,7 @@ async def test_create_user(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_user_with_existing_username(client: AsyncClient):
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': TEST_EMAIL,
@@ -45,7 +45,7 @@ async def test_create_user_with_existing_username(client: AsyncClient):
         },
     )
     response = await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': 'another@mail.com',
@@ -62,7 +62,7 @@ async def test_create_user_with_existing_username(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_user_with_existing_email(client: AsyncClient):
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': TEST_EMAIL,
@@ -70,7 +70,7 @@ async def test_create_user_with_existing_email(client: AsyncClient):
         },
     )
     response = await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': 'AnotherUserName',
             'email': TEST_EMAIL,
@@ -97,7 +97,7 @@ async def test_get_all_users_empty(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_get_all_users_success(client: AsyncClient):
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': TEST_EMAIL,
@@ -105,7 +105,7 @@ async def test_get_all_users_success(client: AsyncClient):
         },
     )
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME + 'X',
             'email': 'X' + TEST_EMAIL,
@@ -124,7 +124,7 @@ async def test_get_all_users_success(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_get_user_success(client: AsyncClient):
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': TEST_EMAIL,
@@ -152,7 +152,7 @@ async def test_get_user_not_found(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_delete_user_success(client: AsyncClient):
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': TEST_EMAIL,
@@ -180,7 +180,7 @@ async def test_delete_user_not_found(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_update_user_success(client: AsyncClient):
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': TEST_EMAIL,
@@ -206,7 +206,7 @@ async def test_update_user_success(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_update_user_password_success(client: AsyncClient):
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': TEST_EMAIL,
@@ -249,7 +249,7 @@ async def test_update_user_not_found(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_update_user_existing_username(client: AsyncClient):
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': TEST_EMAIL,
@@ -257,7 +257,7 @@ async def test_update_user_existing_username(client: AsyncClient):
         },
     )
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': 'NewUser',
             'email': 'NewEmail',
@@ -281,7 +281,7 @@ async def test_update_user_existing_username(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_update_user_existing_email(client: AsyncClient):
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': TEST_USERNAME,
             'email': TEST_EMAIL,
@@ -289,7 +289,7 @@ async def test_update_user_existing_email(client: AsyncClient):
         },
     )
     await client.post(
-        '/users/',
+        '/auth/register',
         json={
             'username': 'NewUser',
             'email': 'NewEmail',

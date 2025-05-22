@@ -1,5 +1,4 @@
-from fastapi import status
-from fastapi.exceptions import HTTPException
+from fastapi import HTTPException, status
 from sqlmodel import or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
