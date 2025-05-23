@@ -21,8 +21,8 @@ from src.utils.security import (
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
-at_expire_seconds = 10
-rt_expire_in_min = 1
+at_expire_seconds = 3600
+rt_expire_in_min = 60 * 24
 
 
 class AuthService:
@@ -45,7 +45,10 @@ class AuthService:
 			data={'sub': str(user_db.uid)}, expires_delta=timedelta(minutes=rt_expire_in_min)
 		)
 
-		response = JSONResponse(content={'access_token': access_token, 'token_type': 'bearer'})
+		response = JSONResponse(
+			content={'access_token': access_token, 'token_type': 'bearer'},
+			status_code=status.HTTP_202_ACCEPTED,
+		)
 
 		response.set_cookie(
 			key='refresh_token',
@@ -61,7 +64,7 @@ class AuthService:
 		return response
 
 	def logout():
-		response = JSONResponse(content={'message': 'Logged out successfully'})
+		response = JSONResponse(content={'detail': 'Logged out successfully.'})
 
 		# Demande au client de supprimer le cookie
 		response.delete_cookie(key='refresh_token', path='/auth/refresh')

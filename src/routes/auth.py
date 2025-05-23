@@ -27,7 +27,7 @@ async def create_user(user: UserCreate, session: Annotated[AsyncSession, Depends
 	return await UserService(session).create_user(user)
 
 
-@router.post('/login', status_code=status.HTTP_202_ACCEPTED, response_model=TokenResponse)
+@router.post('/login', response_model=TokenResponse)
 async def login(
 	form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 	session: Annotated[AsyncSession, Depends(get_session)],
@@ -37,14 +37,14 @@ async def login(
 	return response
 
 
-@router.get('/me')
+@router.get('/me', status_code=status.HTTP_202_ACCEPTED)
 async def read_user_me(
 	current_user: Annotated[User, Depends(get_current_user)],
 ):
 	return current_user
 
 
-@router.get('/refresh', response_model=AccessTokenResponse)
+@router.post('/refresh', response_model=AccessTokenResponse)
 async def generate_new_access_token(
 	refresh_payload: Annotated[dict, Depends(decode_refresh_token_from_cookie)],
 	session: Annotated[AsyncSession, Depends(get_session)],
