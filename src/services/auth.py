@@ -15,9 +15,9 @@ from src.db.main import get_session
 from src.db.models import User
 from src.schemes.auth import AccessTokenResponse, TokenResponse
 from src.utils.security import (
-	create_access_token,
-	create_refresh_token,
-	verify_password,
+    create_access_token,
+    create_refresh_token,
+    verify_password,
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
@@ -26,103 +26,103 @@ rt_expire_in_min = 60 * 24
 
 
 class AuthService:
-	def __init__(self, session: AsyncSession):
-		self.session = session
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
-	async def login(self, form_data: OAuth2PasswordRequestForm):
-		user_db = await self.session.get(User, form_data.username)
+    async def login(self, form_data: OAuth2PasswordRequestForm):
+        user_db = await self.session.get(User, form_data.username)
 
-		if not user_db or not verify_password(form_data.password, user_db.hashed_password):
-			raise HTTPException(
-				status_code=status.HTTP_401_UNAUTHORIZED,
-				detail='Invalid username or password.',
-			)
+        if not user_db or not verify_password(form_data.password, user_db.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Invalid username or password.',
+            )
 
-		access_token = create_access_token(
-			data={'sub': str(user_db.uid)}, expires_delta=timedelta(seconds=at_expire_seconds)
-		)
-		refresh_token = create_refresh_token(
-			data={'sub': str(user_db.uid)}, expires_delta=timedelta(minutes=rt_expire_in_min)
-		)
+        access_token = create_access_token(
+            data={'sub': str(user_db.uid)}, expires_delta=timedelta(seconds=at_expire_seconds)
+        )
+        refresh_token = create_refresh_token(
+            data={'sub': str(user_db.uid)}, expires_delta=timedelta(minutes=rt_expire_in_min)
+        )
 
-		response = JSONResponse(
-			content={'access_token': access_token, 'token_type': 'bearer'},
-			status_code=status.HTTP_202_ACCEPTED,
-		)
+        response = JSONResponse(
+            content={'access_token': access_token, 'token_type': 'bearer'},
+            status_code=status.HTTP_202_ACCEPTED,
+        )
 
-		response.set_cookie(
-			key='refresh_token',
-			value=refresh_token,
-			httponly=True,
-			secure=True,
-			# secure=False,
-			samesite='strict',
-			max_age=rt_expire_in_min * 600,
-			path='/auth/refresh',
-		)
+        response.set_cookie(
+            key='refreshToken',
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            # samesite='Strict',
+            samesite='None',
+            max_age=rt_expire_in_min * 600,
+            path='/auth/refresh',
+        )
 
-		return response
+        return response
 
-	def logout():
-		response = JSONResponse(content={'detail': 'Logged out successfully.'})
+    def logout():
+        response = JSONResponse(content={'detail': 'Logged out successfully.'})
 
-		# Demande au client de supprimer le cookie
-		response.delete_cookie(key='refresh_token', path='/auth/refresh')
+        # Demande au client de supprimer le cookie
+        response.delete_cookie(key='refreshToken', path='/auth/refresh')
 
-		return response
+        return response
 
-	async def refresh_access_token(self, refresh_payload):
-		user_uid = refresh_payload.get('sub')
+    async def refresh_access_token(self, refresh_payload):
+        user_uid = refresh_payload.get('sub')
 
-		results = await self.session.exec(select(User).where(User.uid == uuid.UUID(user_uid)))
-		user_db = results.first()
+        results = await self.session.exec(select(User).where(User.uid == uuid.UUID(user_uid)))
+        user_db = results.first()
 
-		if not user_db:
-			raise HTTPException(
-				status_code=status.HTTP_404_NOT_FOUND, detail='Refresh token user ID not found.'
-			)
+        if not user_db:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail='Refresh token user ID not found.'
+            )
 
-		access_token = create_access_token(
-			data={'sub': user_uid}, expires_delta=timedelta(seconds=at_expire_seconds)
-		)
+        access_token = create_access_token(
+            data={'sub': user_uid}, expires_delta=timedelta(seconds=at_expire_seconds)
+        )
 
-		return AccessTokenResponse(access_token=access_token)
+        return AccessTokenResponse(access_token=access_token)
 
 
 # Dépendance utilisée dans les routes protégées
 async def get_current_user(
-	token: Annotated[str, Depends(oauth2_scheme)],
-	session: Annotated[AsyncSession, Depends(get_session)],
+    token: Annotated[str, Depends(oauth2_scheme)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ):
-	invalid_token_exception = HTTPException(
-		status_code=status.HTTP_401_UNAUTHORIZED,
-		detail='Invalid token.',
-		headers={'WWW-Authenticate': 'Bearer'},
-	)
+    invalid_token_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail='Invalid token.',
+        headers={'WWW-Authenticate': 'Bearer'},
+    )
 
-	try:
-		payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
 
-		# Transforme le token type str en type UUID
-		user_uid = uuid.UUID(payload.get('sub'))
+        # Transforme le token type str en type UUID
+        user_uid = uuid.UUID(payload.get('sub'))
 
-		if user_uid is None:
-			raise invalid_token_exception
+        if user_uid is None:
+            raise invalid_token_exception
 
-		statement = select(User).where(User.uid == user_uid)
-		result = await session.exec(statement)
-		user_db = result.first()
+        statement = select(User).where(User.uid == user_uid)
+        result = await session.exec(statement)
+        user_db = result.first()
 
-		if not user_db:
-			raise invalid_token_exception
+        if not user_db:
+            raise invalid_token_exception
 
-		return user_db
+        return user_db
 
-	except ExpiredSignatureError:
-		raise HTTPException(
-			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail='Token expired.',
-			headers={'WWW-Authenticate': 'Bearer'},
-		)
-	except InvalidTokenError:
-		raise invalid_token_exception
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Token expired.',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
+    except InvalidTokenError:
+        raise invalid_token_exception
