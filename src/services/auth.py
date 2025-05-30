@@ -9,7 +9,6 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt import ExpiredSignatureError, InvalidTokenError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.config import settings
 from src.db.main import get_session
 from src.db.models import User
@@ -32,21 +31,29 @@ class AuthService:
     async def login(self, form_data: OAuth2PasswordRequestForm):
         user_db = await self.session.get(User, form_data.username)
 
-        if not user_db or not verify_password(form_data.password, user_db.hashed_password):
+        if not user_db or not verify_password(
+            form_data.password, user_db.hashed_password
+        ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='Invalid username or password.',
             )
 
         access_token = create_access_token(
-            data={'sub': str(user_db.uid)}, expires_delta=timedelta(seconds=at_expire_seconds)
+            data={'sub': str(user_db.uid)},
+            expires_delta=timedelta(seconds=at_expire_seconds),
         )
         refresh_token = create_refresh_token(
-            data={'sub': str(user_db.uid)}, expires_delta=timedelta(minutes=rt_expire_in_min)
+            data={'sub': str(user_db.uid)},
+            expires_delta=timedelta(minutes=rt_expire_in_min),
         )
 
         response = JSONResponse(
-            content={'access_token': access_token, 'token_type': 'bearer'},
+            content={
+                'access_token': access_token,
+                'token_type': 'bearer',
+                'username': user_db.username,
+            },
             status_code=status.HTTP_202_ACCEPTED,
         )
 
@@ -57,36 +64,42 @@ class AuthService:
             secure=True,
             # samesite='Strict',
             samesite='None',
-            max_age=rt_expire_in_min * 600,
+            max_age=rt_expire_in_min * 60,
             path='/auth/refresh',
         )
-
-        return response
-
-    def logout():
-        response = JSONResponse(content={'detail': 'Logged out successfully.'})
-
-        # Demande au client de supprimer le cookie
-        response.delete_cookie(key='refreshToken', path='/auth/refresh')
 
         return response
 
     async def refresh_access_token(self, refresh_payload):
         user_uid = refresh_payload.get('sub')
 
-        results = await self.session.exec(select(User).where(User.uid == uuid.UUID(user_uid)))
+        results = await self.session.exec(
+            select(User).where(User.uid == uuid.UUID(user_uid))
+        )
         user_db = results.first()
 
         if not user_db:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail='Refresh token user ID not found.'
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Refresh token user ID not found.',
             )
 
         access_token = create_access_token(
             data={'sub': user_uid}, expires_delta=timedelta(seconds=at_expire_seconds)
         )
 
-        return AccessTokenResponse(access_token=access_token)
+        return AccessTokenResponse(access_token=access_token, username=user_db.username)
+
+
+def logout():
+    print('>> Logout function called')
+    response = JSONResponse(content={'detail': 'Logged out successfully.'})
+
+    # Demande au client de supprimer le cookie !!! MEMES PARAMETRES QUE LORS DE LA CREATION !!!
+    response.delete_cookie(
+        key='refreshToken', path='/auth/refresh', secure=True, samesite='None'
+    )
+    return response
 
 
 # Dépendance utilisée dans les routes protégées
@@ -101,7 +114,9 @@ async def get_current_user(
     )
 
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(
+            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
 
         # Transforme le token type str en type UUID
         user_uid = uuid.UUID(payload.get('sub'))

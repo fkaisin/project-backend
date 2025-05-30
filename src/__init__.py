@@ -2,8 +2,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlmodel import text
 
-from src.db.main import init_db
+from src.db.main import engine, init_db
 from src.routes.auth import router as auth_router
 from src.routes.user import router as user_router
 
@@ -13,6 +14,12 @@ async def lifespan(app: FastAPI):
     print('=' * 50, ' Starting up... ', '=' * 50)
     await init_db()
     yield
+
+    # Exécute le checkpoint WAL pour forcer la sauvegarde de la db
+    async with engine.begin() as conn:
+        await conn.execute(text('PRAGMA wal_checkpoint(FULL);'))
+        print('✅ WAL checkpoint effectué.')
+
     print('=' * 50, ' Shutting down... ', '=' * 50)
 
 

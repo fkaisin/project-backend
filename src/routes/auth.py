@@ -3,12 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.main import get_session
 from src.db.models import User
 from src.schemes.auth import AccessTokenResponse, TokenResponse
 from src.schemes.user import UserCreate, UserPublic
-from src.services.auth import AuthService, get_current_user
+from src.services.auth import AuthService, get_current_user, logout
 from src.services.user import UserService
 from src.utils.security import decode_refresh_token_from_cookie
 
@@ -57,4 +56,4 @@ async def generate_new_access_token(
 
 @router.post('/logout')
 def logout_user():
-    return AuthService.logout()
+    return logout()

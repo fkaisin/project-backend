@@ -14,3 +14,4 @@ class TokenResponse(TokenBase):
 class AccessTokenResponse(SQLModel):
 	access_token: str
 	token_type: str = 'bearer'
+	username: str
