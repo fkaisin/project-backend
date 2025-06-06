@@ -29,7 +29,7 @@ class AuthService:
         self.session = session
 
     async def login(self, form_data: OAuth2PasswordRequestForm):
-        user_db = await self.session.get(User, form_data.username)
+        user_db = await self.session.get(User, form_data.username.lower())
 
         if not user_db or not verify_password(
             form_data.password, user_db.hashed_password

@@ -23,7 +23,8 @@ class UserPublic(UserBase):
 class UserUpdate(SQLModel):
     username: str | None = None
     email: str | None = None
-    password: str | None = None
+    old_password: str | None = None
+    new_password: str | None = None
 
 
 class UserLogin(UserBase):

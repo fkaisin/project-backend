@@ -2,7 +2,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.main import get_session
 from src.db.models import User
 from src.schemes.user import UserPublic, UserUpdate
@@ -26,7 +25,7 @@ async def read_user(
     return await UserService(session).get_user(username)
 
 
-@router.patch('/{username}', status_code=status.HTTP_200_OK, response_model=UserPublic)
+@router.patch('/{username}', response_model=UserPublic)
 async def update_user(
     username: str,
     user: UserUpdate,

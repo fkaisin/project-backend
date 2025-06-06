@@ -1,13 +1,12 @@
 from fastapi import HTTPException, status
 from sqlmodel import or_, select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from src.db.models import User
 from src.schemes.user import UserUpdate
 from src.utils.dbcheck import (
     check_username_or_email_exists,
 )
-from src.utils.security import hash_password
+from src.utils.security import hash_password, verify_password
 
 
 class UserService:
@@ -20,8 +19,10 @@ class UserService:
         return result.all()
 
     async def create_user(self, user):
+        username_lower = user.username.lower()
+        email_lower = user.email.lower()
         user_check = await check_username_or_email_exists(
-            username=user.username, email=user.email, session=self.session
+            username=username_lower, email=email_lower, session=self.session
         )
         if user_check:
             raise HTTPException(
@@ -30,7 +31,11 @@ class UserService:
             )
 
         hashed_password = hash_password(user.password)
-        extra_data = {'hashed_password': hashed_password}
+        extra_data = {
+            'hashed_password': hashed_password,
+            'username': username_lower,
+            'email': email_lower,
+        }
         db_user = User.model_validate(user, update=extra_data)
         self.session.add(db_user)
         await self.session.commit()
@@ -48,6 +53,15 @@ class UserService:
         return user
 
     async def update_user(self, username: str, user: UserUpdate):
+        user_data = user.model_dump(exclude_unset=True)
+        if 'username' in user_data:
+            user_data['username'] = user_data['username'].lower()
+        else:
+            user_data['username'] = ''
+
+        if 'email' in user_data:
+            user_data['email'] = user_data['email'].lower()
+
         db_user = await self.session.get(User, username)
 
         if not db_user:
@@ -55,8 +69,6 @@ class UserService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail='User not found.',
             )
-
-        user_data = user.model_dump(exclude_unset=True)
 
         if user_data.get('username') or user_data.get('email'):
             user_check = await check_username_or_email_exists(
@@ -69,10 +81,12 @@ class UserService:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=user_check,
                 )
-
-        if user_data.get('password'):
-            user_data['hashed_password'] = hash_password(user_data['password'])
-            del user_data['password']
+        if user_data.get('new_password') and verify_password(
+            user_data.get('old_password'), db_user.hashed_password
+        ):
+            user_data['hashed_password'] = hash_password(user_data['new_password'])
+            del user_data['old_password']
+            del user_data['new_password']
         db_user.sqlmodel_update(user_data)
 
         self.session.add(db_user)
