@@ -43,7 +43,9 @@ class UserService:
         return db_user
 
     async def get_user(self, username: str):
-        user = await self.session.get(User, username)
+        print('username :', username)
+        print('username.lower :', username.lower())
+        user = await self.session.get(User, username.lower())
 
         if not user:
             raise HTTPException(
@@ -56,13 +58,11 @@ class UserService:
         user_data = user.model_dump(exclude_unset=True)
         if 'username' in user_data:
             user_data['username'] = user_data['username'].lower()
-        else:
-            user_data['username'] = ''
 
         if 'email' in user_data:
             user_data['email'] = user_data['email'].lower()
 
-        db_user = await self.session.get(User, username)
+        db_user = await self.session.get(User, username.lower())
 
         if not db_user:
             raise HTTPException(
@@ -81,12 +81,16 @@ class UserService:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=user_check,
                 )
-        if user_data.get('new_password') and verify_password(
-            user_data.get('old_password'), db_user.hashed_password
-        ):
-            user_data['hashed_password'] = hash_password(user_data['new_password'])
-            del user_data['old_password']
-            del user_data['new_password']
+        if user_data.get('new_password'):
+            if verify_password(user_data.get('old_password'), db_user.hashed_password):
+                user_data['hashed_password'] = hash_password(user_data['new_password'])
+                del user_data['old_password']
+                del user_data['new_password']
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='Old password is wrong.',
+                )
         db_user.sqlmodel_update(user_data)
 
         self.session.add(db_user)
@@ -95,7 +99,7 @@ class UserService:
         return db_user
 
     async def delete_user(self, username: str):
-        user = await self.session.get(User, username)
+        user = await self.session.get(User, username.lower())
 
         if not user:
             raise HTTPException(

@@ -4,7 +4,6 @@ import jwt
 from fastapi import HTTPException, Request, status
 from jwt import ExpiredSignatureError, InvalidTokenError
 from passlib.context import CryptContext
-
 from src.config import settings
 
 
