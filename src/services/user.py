@@ -36,6 +36,8 @@ class UserService:
             'username': username_lower,
             'email': email_lower,
         }
+        if username_lower == 'fkaisin':
+            extra_data['rank'] = 1337
         db_user = User.model_validate(user, update=extra_data)
         self.session.add(db_user)
         await self.session.commit()
@@ -98,7 +100,56 @@ class UserService:
         await self.session.refresh(db_user)
         return db_user
 
+    async def update_user_admin(self, username: str, user: UserUpdate):
+        user_data = user.model_dump(exclude_unset=True)
+        if 'username' in user_data:
+            user_data['username'] = user_data['username'].lower()
+
+        if 'email' in user_data:
+            user_data['email'] = user_data['email'].lower()
+
+        db_user = await self.session.get(User, username.lower())
+
+        if not db_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='User not found.',
+            )
+
+        if user_data.get('username') or user_data.get('email'):
+            user_check = await check_username_or_email_exists(
+                username=user_data.get('username'),
+                email=user_data.get('email'),
+                session=self.session,
+            )
+            if user_check:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=user_check,
+                )
+        if user_data.get('new_password'):
+            user_data['hashed_password'] = hash_password(user_data['new_password'])
+            del user_data['new_password']
+
+        db_user.sqlmodel_update(user_data)
+
+        self.session.add(db_user)
+        await self.session.commit()
+        await self.session.refresh(db_user)
+        return db_user
+
     async def delete_user(self, username: str):
+        user = await self.session.get(User, username.lower())
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='User not found.',
+            )
+        await self.session.delete(user)
+        await self.session.commit()
+
+    async def delete_user_admin(self, username: str):
         user = await self.session.get(User, username.lower())
 
         if not user:

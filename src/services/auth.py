@@ -12,7 +12,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.config import settings
 from src.db.main import get_session
 from src.db.models import User
-from src.schemes.auth import AccessTokenResponse, TokenResponse
+from src.schemes.auth import AccessTokenResponse
 from src.utils.security import (
     create_access_token,
     create_refresh_token,
@@ -20,8 +20,8 @@ from src.utils.security import (
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
-at_expire_seconds = 3600
-rt_expire_in_min = 60 * 24
+at_expire_seconds = 60 * settings.JWT_ACCESS_EXPIRATION_IN_MIN
+rt_expire_in_seconds = 24 * 60 * 60 * settings.JWT_REFRESH_EXPIRATION_IN_HOURS
 
 
 class AuthService:
@@ -40,19 +40,18 @@ class AuthService:
             )
 
         access_token = create_access_token(
-            data={'sub': str(user_db.uid)},
+            data={'sub': str(user_db.uid), 'rank': user_db.rank},
             expires_delta=timedelta(seconds=at_expire_seconds),
         )
         refresh_token = create_refresh_token(
-            data={'sub': str(user_db.uid)},
-            expires_delta=timedelta(minutes=rt_expire_in_min),
+            data={'sub': str(user_db.uid), 'rank': user_db.rank},
+            expires_delta=timedelta(seconds=rt_expire_in_seconds),
         )
 
         response = JSONResponse(
             content={
                 'access_token': access_token,
                 'token_type': 'bearer',
-                'username': user_db.username,
             },
             status_code=status.HTTP_202_ACCEPTED,
         )
@@ -64,7 +63,7 @@ class AuthService:
             secure=True,
             # samesite='Strict',
             samesite='None',
-            max_age=rt_expire_in_min * 60,
+            max_age=rt_expire_in_seconds,
             path='/auth/refresh',
         )
 
@@ -88,11 +87,10 @@ class AuthService:
             data={'sub': user_uid}, expires_delta=timedelta(seconds=at_expire_seconds)
         )
 
-        return AccessTokenResponse(access_token=access_token, username=user_db.username)
+        return AccessTokenResponse(access_token=access_token)
 
 
 def logout():
-    print('>> Logout function called')
     response = JSONResponse(content={'detail': 'Logged out successfully.'})
 
     # Demande au client de supprimer le cookie !!! MEMES PARAMETRES QUE LORS DE LA CREATION !!!
@@ -131,6 +129,52 @@ async def get_current_user(
         if not user_db:
             raise invalid_token_exception
 
+        return user_db
+
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Token expired.',
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
+    except InvalidTokenError:
+        raise invalid_token_exception
+
+
+# Dépendance utilisée dans les routes protégées admin
+async def is_admin(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    invalid_token_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail='Invalid token.',
+        headers={'WWW-Authenticate': 'Bearer'},
+    )
+
+    try:
+        payload = jwt.decode(
+            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
+
+        # Transforme le token type str en type UUID
+        user_uid = uuid.UUID(payload.get('sub'))
+
+        if user_uid is None:
+            raise invalid_token_exception
+
+        statement = select(User).where(User.uid == user_uid)
+        result = await session.exec(statement)
+        user_db = result.first()
+
+        if not user_db:
+            raise invalid_token_exception
+
+        if user_db.rank != 1337:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Requires admin privilege.',
+            )
         return user_db
 
     except ExpiredSignatureError:

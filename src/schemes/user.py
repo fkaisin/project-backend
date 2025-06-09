@@ -17,14 +17,17 @@ class UserPublic(UserBase):
     uid: uuid.UUID
     created_at: datetime
     updated_at: datetime
-    hashed_password: str
+    rank: int = 1020
 
 
-class UserUpdate(SQLModel):
+class UserUpdateAdmin(SQLModel):
     username: str | None = None
     email: str | None = None
-    old_password: str | None = None
     new_password: str | None = None
+
+
+class UserUpdate(UserUpdateAdmin):
+    old_password: str | None = None
 
 
 class UserLogin(UserBase):

@@ -21,6 +21,7 @@ def create_access_token(
     data: dict,
     expires_delta: timedelta = timedelta(minutes=settings.JWT_ACCESS_EXPIRATION_IN_MIN),
 ) -> str:
+    # expires_delta = timedelta(seconds=10)
     to_encode = data.copy()
     expire = datetime.now(UTC) + expires_delta
     to_encode.update({'exp': expire})
@@ -33,8 +34,11 @@ def create_access_token(
 
 def create_refresh_token(
     data: dict,
-    expires_delta: timedelta = timedelta(days=settings.JWT_REFRESH_EXPIRATION_IN_DAYS),
+    expires_delta: timedelta = timedelta(
+        hours=settings.JWT_REFRESH_EXPIRATION_IN_HOURS
+    ),
 ) -> str:
+    # expires_delta = timedelta(seconds=20)
     to_encode = data.copy()
     expire = datetime.now(UTC) + expires_delta
     to_encode.update({'exp': expire})

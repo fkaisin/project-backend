@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.main import get_session
 from src.db.models import User
-from src.schemes.user import UserPublic, UserUpdate
+from src.schemes.user import UserPublic, UserUpdate, UserUpdateAdmin
+from src.services.auth import get_current_user, is_admin
 from src.services.user import UserService
 
 router = APIRouter(
@@ -25,18 +26,42 @@ async def read_user(
     return await UserService(session).get_user(username)
 
 
-@router.patch('/{username}', response_model=UserPublic)
+@router.patch('/', response_model=UserPublic)
 async def update_user(
-    username: str,
     user: UserUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
+    username = current_user.username
     return await UserService(session).update_user(username, user)
 
 
-@router.delete('/{username}', status_code=status.HTTP_200_OK)
+@router.patch('/{username}', response_model=UserPublic)
+async def update_user_admin(
+    username: str,
+    user: UserUpdateAdmin,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    admin: Annotated[User, Depends(is_admin)],
+):
+    return await UserService(session).update_user_admin(username, user)
+
+
+@router.delete('/', status_code=status.HTTP_200_OK)
 async def delete_user(
-    username: str, session: Annotated[AsyncSession, Depends(get_session)]
+    # username: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    username = current_user.username
+    await UserService(session).delete_user(username)
+    return {'detail': f'User {username} deleted successfully.'}
+
+
+@router.delete('/{username}', status_code=status.HTTP_200_OK)
+async def delete_user_admin(
+    username: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    admin: Annotated[User, Depends(is_admin)],
 ):
     await UserService(session).delete_user(username)
     return {'detail': f'User {username} deleted successfully.'}
