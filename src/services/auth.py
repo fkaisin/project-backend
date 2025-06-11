@@ -62,7 +62,7 @@ class AuthService:
             httponly=True,
             secure=True,
             # samesite='Strict',
-            samesite='None',
+            samesite='none',
             max_age=rt_expire_in_seconds,
             path='/auth/refresh',
         )
@@ -95,7 +95,7 @@ def logout():
 
     # Demande au client de supprimer le cookie !!! MEMES PARAMETRES QUE LORS DE LA CREATION !!!
     response.delete_cookie(
-        key='refreshToken', path='/auth/refresh', secure=True, samesite='None'
+        key='refreshToken', path='/auth/refresh', secure=True, samesite='none'
     )
     return response
 
@@ -131,14 +131,14 @@ async def get_current_user(
 
         return user_db
 
-    except ExpiredSignatureError:
+    except ExpiredSignatureError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Token expired.',
             headers={'WWW-Authenticate': 'Bearer'},
-        )
-    except InvalidTokenError:
-        raise invalid_token_exception
+        ) from err
+    except InvalidTokenError as err:
+        raise invalid_token_exception from err
 
 
 # Dépendance utilisée dans les routes protégées admin
@@ -177,11 +177,11 @@ async def is_admin(
             )
         return user_db
 
-    except ExpiredSignatureError:
+    except ExpiredSignatureError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Token expired.',
             headers={'WWW-Authenticate': 'Bearer'},
-        )
-    except InvalidTokenError:
-        raise invalid_token_exception
+        ) from err
+    except InvalidTokenError as err:
+        raise invalid_token_exception from err

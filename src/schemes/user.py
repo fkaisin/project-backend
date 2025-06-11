@@ -30,6 +30,6 @@ class UserUpdate(UserUpdateAdmin):
     old_password: str | None = None
 
 
-class UserLogin(UserBase):
-    email: None = None
+class UserLogin(SQLModel):
+    username: str
     password: str
