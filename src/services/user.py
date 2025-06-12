@@ -47,7 +47,9 @@ class UserService:
     async def get_user(self, username: str):
         print('username :', username)
         print('username.lower :', username.lower())
-        user = await self.session.get(User, username.lower())
+        # user = await self.session.get(User, username.lower())
+        results = await self.session.exec(select(User).where(User.username == username.lower()))
+        user = results.one()
 
         if not user:
             raise HTTPException(
@@ -64,7 +66,9 @@ class UserService:
         if 'email' in user_data:
             user_data['email'] = user_data['email'].lower()
 
-        db_user = await self.session.get(User, username.lower())
+        # db_user = await self.session.get(User, username.lower())
+        results = await self.session.exec(select(User).where(User.username == username.lower()))
+        db_user = results.one()
 
         if not db_user:
             raise HTTPException(
@@ -114,7 +118,9 @@ class UserService:
         if 'email' in user_data:
             user_data['email'] = user_data['email'].lower()
 
-        db_user = await self.session.get(User, username.lower())
+        # db_user = await self.session.get(User, username.lower())
+        results = await self.session.exec(select(User).where(User.username == username.lower()))
+        db_user = results.one()
 
         if not db_user:
             raise HTTPException(
@@ -145,7 +151,9 @@ class UserService:
         return db_user
 
     async def delete_user(self, username: str):
-        user = await self.session.get(User, username.lower())
+        # user = await self.session.get(User, username.lower())
+        results = await self.session.exec(select(User).where(User.username == username.lower()))
+        user = results.one()
 
         if not user:
             raise HTTPException(
@@ -156,7 +164,9 @@ class UserService:
         await self.session.commit()
 
     async def delete_user_admin(self, username: str):
-        user = await self.session.get(User, username.lower())
+        # user = await self.session.get(User, username.lower())
+        results = await self.session.exec(select(User).where(User.username == username.lower()))
+        user = results.one()
 
         if not user:
             raise HTTPException(

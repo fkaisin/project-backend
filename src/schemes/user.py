@@ -5,7 +5,7 @@ from sqlmodel import Field, SQLModel
 
 
 class UserBase(SQLModel):
-    username: str = Field(primary_key=True)
+    username: str = Field(index=True)
     email: str = Field(index=True)
 
 

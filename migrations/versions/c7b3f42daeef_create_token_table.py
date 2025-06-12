@@ -1,8 +1,8 @@
 """Create token table.
 
-Revision ID: b48c376435ee
-Revises: caf8c80200b2
-Create Date: 2025-06-11 15:00:38.834014
+Revision ID: c7b3f42daeef
+Revises: 72e7ebd4de6a
+Create Date: 2025-06-12 11:44:05.789609
 
 """
 from typing import Sequence, Union
@@ -13,8 +13,8 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b48c376435ee'
-down_revision: Union[str, None] = 'caf8c80200b2'
+revision: str = 'c7b3f42daeef'
+down_revision: Union[str, None] = '72e7ebd4de6a'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
