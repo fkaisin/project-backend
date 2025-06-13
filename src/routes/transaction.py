@@ -15,7 +15,7 @@ router = APIRouter(
 
 
 @router.get(
-    '/transactions',
+    '/',
     status_code=status.HTTP_200_OK,
     response_model=list[TransactionPublic],
 )
@@ -27,7 +27,7 @@ async def get_user_transactions(
 
 
 @router.post(
-    '/transactions',
+    '/',
     status_code=status.HTTP_201_CREATED,
     response_model=TransactionPublic,
 )
@@ -36,4 +36,6 @@ async def create_transactions(
     session: Annotated[AsyncSession, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
 ):
-    return await TransactionService(session).create_transactions(trx_data, current_user.uid)
+    return await TransactionService(session).create_transactions(
+        trx_data, current_user.uid
+    )

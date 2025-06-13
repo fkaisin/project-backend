@@ -2,14 +2,13 @@ import csv
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
-from sqlmodel import Session, SQLModel, create_engine, delete, select, text
+from sqlmodel import Session, create_engine, delete, select, text
 from src.db.models import Token, Transaction, User
 from src.utils.security import hash_password
 
 sqlite_url = 'sqlite:///./src/db/database.sqlite'
 
 engine = create_engine(sqlite_url, echo=True)
-# SQLModel.metadata.create_all(engine)
 with engine.begin() as conn:
     conn.execute(text('PRAGMA foreign_keys=ON'))  # for SQLite only
 
@@ -26,8 +25,8 @@ class TransactionCSVModel(BaseModel):
     origin: str | None = None
     actif_f: str | None = None
     qty_f: float | None = None
-    val_f: float | None = None
-    val_a: float | None = None
+    value_f: float | None = None
+    value_a: float | None = None
     id: int | None = None
 
     @field_validator('date', mode='before')
@@ -97,7 +96,9 @@ def resetTokens():
         session.exec(delete(Token))
 
         for coin in coins:
-            session.add(Token(cg_id=coin['cg_id'], symbol=coin['symbol'], name=coin['name']))
+            session.add(
+                Token(cg_id=coin['cg_id'], symbol=coin['symbol'], name=coin['name'])
+            )
 
         session.add(Token(cg_id='fiat_eur', symbol='EUR', name='Euro'))
         session.add(Token(cg_id='fiat_usd', symbol='USD', name='Dollar US'))
@@ -114,13 +115,21 @@ def resetTransactions():
     transactions = [convert_transaction(dict(zip(headers, row))) for row in rows]
 
     with Session(engine) as session:
-        fkaisin_uid = session.exec(select(User.uid).where(User.username == 'fkaisin')).one()
+        fkaisin_uid = session.exec(
+            select(User.uid).where(User.username == 'fkaisin')
+        ).one()
         session.exec(delete(Transaction))
 
         for trx in transactions:
-            trx['actif_a_id'] = session.exec(select(Token.cg_id).where(Token.symbol == trx['actif_a'])).first()
-            trx['actif_v_id'] = session.exec(select(Token.cg_id).where(Token.symbol == trx['actif_v'])).first()
-            trx['actif_f_id'] = session.exec(select(Token.cg_id).where(Token.symbol == trx['actif_f'])).first()
+            trx['actif_a_id'] = session.exec(
+                select(Token.cg_id).where(Token.symbol == trx['actif_a'])
+            ).first()
+            trx['actif_v_id'] = session.exec(
+                select(Token.cg_id).where(Token.symbol == trx['actif_v'])
+            ).first()
+            trx['actif_f_id'] = session.exec(
+                select(Token.cg_id).where(Token.symbol == trx['actif_f'])
+            ).first()
             trx['user_id'] = fkaisin_uid
             trx.pop('actif_a', None)
             trx.pop('actif_v', None)
@@ -133,7 +142,9 @@ def assign_transactions_to_ariane():
     with Session(engine) as session:
         user_fk = session.exec(select(User).where(User.username == 'fkaisin')).one()
         user_ak = session.exec(select(User).where(User.username == 'ariane')).one()
-        statement = select(Transaction).where(Transaction.user_id == user_fk.uid).limit(5)
+        statement = (
+            select(Transaction).where(Transaction.user_id == user_fk.uid).limit(5)
+        )
         results = session.exec(statement).all()
         for r in results:
             r.user = user_ak
@@ -154,5 +165,5 @@ if __name__ == '__main__':
     resetUsers()
     resetTokens()
     resetTransactions()
-    assign_transactions_to_ariane()
+    # assign_transactions_to_ariane()
     # test_function()

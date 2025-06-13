@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
 
-from pydantic import computed_field
+from pydantic import ConfigDict, computed_field
 from sqlmodel import Field, SQLModel
+from src.schemes.token import TokenBase
 
 
 class TransactionBase(SQLModel):
@@ -16,13 +17,12 @@ class TransactionBase(SQLModel):
     value_f: float | None = None
     value_a: float | None = None
 
-    actif_a_id: str | None = Field(default=None, foreign_key='tokens.cg_id', ondelete='SET NULL')
-    actif_v_id: str | None = Field(default=None, foreign_key='tokens.cg_id', ondelete='SET NULL')
-    actif_f_id: str | None = Field(default=None, foreign_key='tokens.cg_id', ondelete='SET NULL')
-
 
 class TransactionPublic(TransactionBase):
-    uid: uuid.UUID
+    id: uuid.UUID
+    actif_a: TokenBase | None = None
+    actif_v: TokenBase | None = None
+    actif_f: TokenBase | None = None
 
     @computed_field
     @property
@@ -33,7 +33,9 @@ class TransactionPublic(TransactionBase):
 
 
 class TransactionCreate(TransactionBase):
-    pass
+    actif_a_id: str | None = None
+    actif_v_id: str | None = None
+    actif_f_id: str | None = None
 
 
 class TransactionUpdate(SQLModel):

@@ -12,11 +12,23 @@ class TransactionService:
 
     async def get_user_transactions(self, current_user_uid):
         # Recharge le user avec ses transactions explicitement
-        statement = select(User).where(User.uid == current_user_uid).options(selectinload(User.transactions))
+        statement = (
+            select(User)
+            .where(User.uid == current_user_uid)
+            .options(
+                selectinload(User.transactions).selectinload(Transaction.actif_a),
+                selectinload(User.transactions).selectinload(Transaction.actif_v),
+                selectinload(User.transactions).selectinload(Transaction.actif_f),
+            )
+        )
         result = await self.session.exec(statement)
         user_with_tx = result.one()
-
-        return user_with_tx.transactions if user_with_tx else []
+        # return user_with_tx.transactions if user_with_tx else []
+        return (
+            sorted(user_with_tx.transactions, key=lambda trx: trx.date, reverse=True)
+            if user_with_tx
+            else []
+        )
 
     async def create_transactions(self, trx_data, current_user_uid):
         extra_data = {

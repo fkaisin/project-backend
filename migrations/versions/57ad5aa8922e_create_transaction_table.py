@@ -1,8 +1,8 @@
 """Create transaction table.
 
-Revision ID: 0e99e6b88449
-Revises: c7b3f42daeef
-Create Date: 2025-06-12 11:44:31.878868
+Revision ID: 57ad5aa8922e
+Revises: c8f223bde1a3
+Create Date: 2025-06-13 11:52:50.542035
 
 """
 from typing import Sequence, Union
@@ -13,8 +13,8 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0e99e6b88449'
-down_revision: Union[str, None] = 'c7b3f42daeef'
+revision: str = '57ad5aa8922e'
+down_revision: Union[str, None] = 'c8f223bde1a3'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -32,16 +32,16 @@ def upgrade() -> None:
     sa.Column('qty_f', sa.Float(), nullable=True),
     sa.Column('value_f', sa.Float(), nullable=True),
     sa.Column('value_a', sa.Float(), nullable=True),
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('user_id', sa.Uuid(), nullable=True),
     sa.Column('actif_a_id', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('actif_v_id', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('actif_f_id', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('uid', sa.Uuid(), nullable=False),
-    sa.Column('user_id', sa.Uuid(), nullable=True),
     sa.ForeignKeyConstraint(['actif_a_id'], ['tokens.cg_id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['actif_f_id'], ['tokens.cg_id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['actif_v_id'], ['tokens.cg_id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['user_id'], ['users.uid'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('uid')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_transactions_user_id'), 'transactions', ['user_id'], unique=False)
     # ### end Alembic commands ###
